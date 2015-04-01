@@ -67,6 +67,7 @@ class WifiAP(Entity):
 					self.combus.send(send_message_str)
 					self.partners[partner]["remaining_cycles"] -= 1
 				else:
+					self.available_bandwidth += self.partners[partner]["serving_bandwidth"]
 					del self.partners[partner]
 				
 
@@ -104,6 +105,7 @@ class FreeWifiWanter(Entity):
 		self.requested_service_time = requested_service_time
 		self.negotiation_stage = "looking for partners"
 		self.negotiation_party = None
+		self.received_tokens = 0
 
 	def talk(self):
 		if self.negotiation_stage == "sending demand":
@@ -122,7 +124,7 @@ class FreeWifiWanter(Entity):
 			self.show()
 
 	def show(self):
-		print "\n", self.MAC, "negotiation stage:", self.negotiation_stage, "negotiation party:", self.negotiation_party
+		print "\n", self.MAC, ";negotiation stage:", self.negotiation_stage, ";negotiation party:", self.negotiation_party, ";received tokens:", self.received_tokens
 
 	def listen(self):
 		messages = [json.loads(msg) for msg in self.combus.receive()]
@@ -137,6 +139,10 @@ class FreeWifiWanter(Entity):
 						self.negotiation_party = message['message_source']
 				if self.negotiation_stage == "waiting for demand answer" and message['message_type'] == 'contract_unilateral' and message['contract_type'] == 'connection' and message['connection_type'] == 'wifi' and message['connection_scope'] == 'WAN' and message['traffic_price'] == 0 and message['contract_length'] == self.requested_service_time:
 					self.negotiation_stage = "signing contract"
+				if self.negotiation_stage == "being served" and message['message_type'] == 'service_token':
+					self.received_tokens += 1
+					if self.received_tokens >= self.requested_service_time:
+						self.negotiation_stage = "happy"
 				
 def main():
 	combus = CommunicationBus(name = "Common Communication Bus", verbose = False)
