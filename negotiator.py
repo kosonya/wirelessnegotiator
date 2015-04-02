@@ -98,7 +98,7 @@ class WifiAP(Entity):
 				
 
 class FreeWifiWanter(Entity):
-	def __init__(self, MAC, communication_bus, verbose = False, requested_service_time = 3):
+	def __init__(self, MAC, communication_bus, verbose = False, requested_service_time = 3, requested_bandwight = 1234):
 		self.MAC = MAC
 		self.combus = communication_bus
 		self.verbose = verbose
@@ -106,10 +106,11 @@ class FreeWifiWanter(Entity):
 		self.negotiation_stage = "looking for partners"
 		self.negotiation_party = None
 		self.received_tokens = 0
+		self.requested_bandwight = requested_bandwight 
 
 	def talk(self):
 		if self.negotiation_stage == "sending demand":
-			message = {'message_type': 'demand', 'demand_type': 'connection', 'connection_type': 'wifi', 'message_source': self.MAC, 'message_destination': self.negotiation_party, 'requested_bandwight': 1234, 'requested_price': 0, 'requested_time': self.requested_service_time}
+			message = {'message_type': 'demand', 'demand_type': 'connection', 'connection_type': 'wifi', 'message_source': self.MAC, 'message_destination': self.negotiation_party, 'requested_bandwight': self.requested_bandwight, 'requested_price': 0, 'requested_time': self.requested_service_time}
 			message_str = json.dumps(message)
 			self.combus.send(message_str)
 			self.negotiation_stage = "waiting for demand answer"
@@ -151,9 +152,12 @@ def main():
 
 	crossmobile_ap = WifiAP(BSSID = "21:43:65:87:09:BA", SSID = "Cross Mobile WiFi", communication_bus = combus, connection_scope = "LAN", connection_speed = 192000, traffic_price = 0, signal_strength = -60, verbose = False)
 
-	client = FreeWifiWanter(MAC = 'AB:CD:EF:FE:DC:BA', communication_bus = combus, verbose = True)
+	client = FreeWifiWanter(MAC = 'AB:CD:EF:FE:DC:BA', communication_bus = combus, verbose = True, requested_service_time = 3, requested_bandwight = 1234)
 
-	entities = [cmu_ap, crossmobile_ap, client]
+	client2 = FreeWifiWanter(MAC = 'BA:CD:EF:FE:DC:BA', communication_bus = combus, verbose = True, requested_service_time = 10, requested_bandwight = 12100)
+
+
+	entities = [cmu_ap, crossmobile_ap, client, client2]
 
 	while True:
 		for entity in entities:
