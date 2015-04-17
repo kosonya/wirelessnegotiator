@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import random
+
 class CommunicationBus(object):
 	def __init__(self, name = None, verbose = False):
 		self.name = name
@@ -15,4 +17,5 @@ class CommunicationBus(object):
 		self.messages.append(message)
 
 	def receive(self):
+		random.shuffle(self.messages)
 		return list(self.messages)
