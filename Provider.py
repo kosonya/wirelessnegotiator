@@ -39,7 +39,10 @@ class Provider(Entity):
 					self.available_bandwidth += self.partners[partner]["serving_bandwidth"]
 					del self.partners[partner]
 			elif self.partners[partner]["negotiation_stage"] == "demand_rejected":
-				send_message = {"message_type": "demand_rejected", "rejection_reason": "not_enough_bandwidth", "can_ask_later": True, "cycles_to_wait_before_asking": 2,'message_source': self.BSSID, 'message_destination': partner}
+				if self.partners[partner]["can_ask_later"]:
+					send_message = {"message_type": "demand_rejected", "rejection_reason": "not_enough_bandwidth", "can_ask_later": True, "cycles_to_wait_before_asking": 2,'message_source': self.BSSID, 'message_destination': partner}
+				else:
+					send_message = {"message_type": "demand_rejected", "rejection_reason": "not_enough_bandwidth", "can_ask_later": False, 'message_source': self.BSSID, 'message_destination': partner}
 				send_message_str = json.dumps(send_message)
 				self.combus.send(send_message_str)
 				del self.partners[partner]
@@ -67,6 +70,9 @@ class Provider(Entity):
 						self.partners[message['message_source']] = {"negotiation_stage": "contract_offered", "serving_bandwidth": message['requested_bandwight'], "remaining_cycles": message['requested_time'], "price":message['requested_price']}
 						self.available_bandwidth -= message['requested_bandwight']
 					else:
-						self.partners[message['message_source']] = {"negotiation_stage": "demand_rejected", "rejection_reason": "not_enough_bandwidth", "can_ask_later": True, "cycles_to_wait_before_asking": 2} #FIXME -- need a better algorithm of computing cycles_to_wait_before_asking
+						if message['requested_bandwight'] <= self.connection_speed:
+							self.partners[message['message_source']] = {"negotiation_stage": "demand_rejected", "rejection_reason": "not_enough_bandwidth", "can_ask_later": True, "cycles_to_wait_before_asking": 2} #FIXME -- need a better algorithm of computing cycles_to_wait_before_asking
+						else:
+							self.partners[message['message_source']] = {"negotiation_stage": "demand_rejected", "rejection_reason": "not_enough_bandwidth", "can_ask_later": False}
 				if message['message_type'] == 'contract_signed' and message['message_source'] in self.partners.keys() and self.partners[message['message_source']]["negotiation_stage"] ==  "contract_offered":
 					self.partners[message['message_source']]["negotiation_stage"] = "serving"
